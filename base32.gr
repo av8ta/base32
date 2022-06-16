@@ -1,0 +1,83 @@
+import String, { explode, implode, UTF8 } from "string"
+import { length, slice, getInt8U } from "bytes"
+import { shrU, shl, lor, gtU, sub, toNumber } from "int32"
+import { ceil } from "number"
+import Array from "array"
+
+export enum Encoding {
+  ZBase32,
+  Base32Hex,
+  Crockford,
+  Base32,
+}
+
+let zBase32 = explode("ybndrfg8ejkmcpqxot1uwisza345h769")
+let base32Hex = explode("0123456789ABCDEFGHIJKLMNOPQRSTUV")
+let crockford = explode("0123456789ABCDEFGHJKMNPQRSTVWXYZ")
+let base32 = explode("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+
+let (++) = (a, b) => String.concat(a, b)
+let (>>) = (intA, intB) => shrU(intA, intB)
+let (<<) = (intA, intB) => shl(intA, intB)
+let (|) = (intA, intB) => lor(intA, intB)
+let (>) = (intA, intB) => gtU(intA, intB)
+let (-) = (intA, intB) => sub(intA, intB)
+
+export let forEachByte = (fn, bytes) => {
+  for (let mut i = 0; i < length(bytes); i += 1) {
+    let byte = slice(i, 1, bytes)
+    fn(byte, i)
+  }
+}
+
+export let forEachInt8U = (fn, bytes) => {
+  for (let mut i = 0; i < length(bytes); i += 1) {
+    let int = getInt8U(i, bytes)
+    fn(int, i)
+  }
+}
+
+export let encodeBytes = (alphabet, padding, bytes) => {
+  let mut shift = 3l
+  let mut carry = 0l
+  let mut index = 0l
+  let resLength = ceil(length(bytes) / 5) * 8
+  let mut result = Array.make(resLength, padding)
+  let mut j = 0
+
+  let process = (byte, i) => {
+    index = carry | byte >> shift
+    result[j] = alphabet[toNumber(index) & 0x1f]
+    j += 1
+
+    if (shift > 5l) {
+      shift -= 5l
+      index = byte >> shift
+      result[j] = alphabet[toNumber(index) & 0x1f]
+      j += 1
+    }
+
+    shift = 5l - shift
+    carry = byte << shift
+    shift = 8l - shift
+
+    if (shift != 3l) {
+      result[j] = alphabet[toNumber(carry) & 0x1f]
+    }
+  }
+
+  forEachInt8U(process, bytes)
+
+  match (padding) {
+    '🌾' => implode(Array.slice(0, j + 1, result)),
+    _ => implode(result),
+  }
+}
+
+export let encode = (encoding: Encoding, string) =>
+  match (encoding) {
+    ZBase32 => encodeBytes(zBase32, '🌾', String.encode(string, UTF8)),
+    Base32Hex => encodeBytes(base32Hex, '=', String.encode(string, UTF8)),
+    Crockford => encodeBytes(crockford, '🌾', String.encode(string, UTF8)),
+    Base32 => encodeBytes(base32, '=', String.encode(string, UTF8)),
+  }

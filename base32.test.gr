@@ -1,0 +1,290 @@
+import { encode, ZBase32, Base32Hex, Crockford, Base32 } from "./base32"
+import String, { concat } from "string"
+import Result from "result"
+
+record Ought {
+  should: String,
+  did: String,
+}
+
+record Results {
+  mut fails: Number,
+  mut succeses: Number,
+}
+let results = { fails: 0, succeses: 0 }
+
+let (++) = (a, b) => concat(a, b)
+
+let equals = (expected, value) =>
+  match (expected == value) {
+    false => Err({ should: " to equal ", did: " did not equal " }),
+    true => Ok({ should: "equal", did: "equals" }),
+  }
+
+let test = (desc, action, fn, comparator, expected) => {
+  let value = fn()
+  match (comparator(expected, value)) {
+    Err(e) => {
+      results.fails = results.fails + 1
+      print(
+        "❌ " ++
+        desc ++
+        ": expected " ++
+        action ++
+        e.should ++
+        toString(expected) ++
+        " but got " ++
+        toString(value)
+      )
+    },
+    _ => {
+      results.succeses = results.succeses + 1
+      print("✅ " ++ desc ++ ": " ++ action ++ " ✅")
+      // print("✅ " ++ desc ++ ": " ++ action ++ " => " ++ toString(value))
+    },
+  }
+}
+
+test(
+  "should encode",
+  "encode(ZBase32, \"The quick brown fox jumps over the lazy dog.\")",
+  () => encode(ZBase32, "The quick brown fox jumps over the lazy dog."),
+  equals,
+  "ktwgkedtqiwsg43ycj3g675qrbug66bypj4s4hdurbzzc3m1rb4go3jyptozw6jyctzsqmo"
+)
+
+test(
+  "should encode",
+  "encode(ZBase32, \"Are you suggesting coconuts migrate?\")",
+  () => encode(ZBase32, "Are you suggesting coconuts migrate?"),
+  equals,
+  "ef3gked3p741yh5ic7uskh5wpfzgqeddp7ts65uiqt31y5mjc73gn7df8h"
+)
+
+test(
+  "should encode",
+  "encode(ZBase32, \"Autonomous collective\")",
+  () =>
+    encode(
+      ZBase32,
+      "MORTICIAN
+Who's that then?
+
+CUSTOMER
+I don't know.
+
+MORTICIAN
+Must be a king.
+
+CUSTOMER
+Why?
+MORTICIAN
+He hasn't got shit all over him.
+
+[clop clop]
+ARTHUR:
+Old woman!
+
+DENNIS:
+Man!
+
+ARTHUR:
+Old Man, sorry. What knight live in that castle over there?
+
+DENNIS:
+I'm thirty seven.
+
+ARTHUR:
+What?
+
+DENNIS:
+I'm thirty seven -- I'm not old!
+
+ARTHUR:
+Well, I can't just call you `Man'.
+
+DENNIS:
+Well, you could say `Dennis'.
+ARTHUR:
+Well, I didn't know you were called `Dennis.'
+
+DENNIS:
+Well, you didn't bother to find out, did you?
+
+ARTHUR:
+I did say sorry about the `old woman,' but from the behind you looked--
+
+DENNIS:
+What I object to is you automatically treat me like an inferior!
+
+ARTHUR:
+Well, I AM king...
+
+DENNIS:
+Oh king, eh, very nice. An' how'd you get that, eh? By exploitin' the workers -- by 'angin' on to outdated imperialist dogma which perpetuates the economic an' social differences in our society! If there's ever going to be any progress--
+
+WOMAN:
+Dennis, there's some lovely filth down here. Oh -- how d'you do?
+
+ARTHUR:
+How do you do, good lady. I am Arthur, King of the Britons.
+Whose castle is that?
+
+WOMAN:
+King of the who?
+ARTHUR:
+The Britons.
+
+WOMAN:
+Who are the Britons?
+
+ARTHUR:
+Well, we all are. we're all Britons and I am your king.
+
+WOMAN:
+I didn't know we had a king. I thought we were an autonomous collective.
+
+DENNIS:
+You're fooling yourself. We're living in a dictatorship. A self-perpetuating autocracy in which the working classes--
+
+WOMAN:
+Oh there you go, bringing class into it again.
+
+DENNIS:
+That's what it's all about if only people would--
+
+ARTHUR:
+Please, please good people. I am in haste. Who lives in that castle?
+
+WOMAN:
+No one live there.
+
+ARTHUR:
+Then who is your lord?
+
+WOMAN:
+We don't have a lord.
+
+ARTHUR:
+What?
+
+DENNIS:
+I told you. We're an anarcho-syndicalist commune. We take it in turns to act as a sort of executive officer for the week.
+
+ARTHUR:
+Yes.
+
+DENNIS:
+But all the decision of that officer have to be ratified at a special biweekly meeting.
+
+ARTHUR:
+Yes, I see.
+
+DENNIS:
+By a simple majority in the case of purely internal affairs,--
+
+ARTHUR:
+Be quiet!
+DENNIS:
+--but by a two-thirds majority in the case of more--
+
+ARTHUR:
+Be quiet! I order you to be quiet!
+
+WOMAN:
+Order, eh -- who does he think he is?
+
+ARTHUR
+I am your king!
+
+WOMAN
+Well, I didn't vote for you.
+
+ARTHUR
+You don't vote for kings.
+
+WOMAN
+Well, 'ow did you become king then?
+
+
+ARTHUR:
+The Lady of the Lake,
+[angels sing]
+her arm clad in the purest shimmering samite, held aloft Excalibur from the bosom of the water signifying by Divine Providence that I, Arthur, was to carry Excalibur.
+[singing stops]
+That is why I am your king!
+
+DENNIS
+Listen -- strange women lying in ponds distributing swords is no basis for a system of government. Supreme executive power derives from a mandate from the masses, not from some farcical aquatic ceremony.
+
+ARTHUR
+Be quiet!
+
+DENNIS
+Well you can't expect to wield supreme executive power just 'cause some watery tart threw a sword at you!
+ARTHUR: Shut up!
+
+DENNIS: I mean, if I went around sayin' I was an emperor just because some moistened bint had lobbed a scimitar at me they'd put me away!
+
+ARTHUR
+Shut up! Will you shut up!
+
+DENNIS
+Ah, now we see the violence inherent in the system.
+
+ARTHUR
+Shut up!
+
+
+DENNIS
+Oh! Come and see the violence inherent in the system! HELP! HELP! I'm being repressed!
+
+ARTHUR
+Bloody peasant!
+
+
+DENNIS
+Oh, what a give away. Did you here that, did you here that, eh? That's what I'm on about -- did you see him repressing me, you saw it didn't you?"
+    ),
+  equals,
+  "ji8irinjeprwnuokk7wg6j5urb4goamwrb4go3mq8hfywo4ikpkr6ukfkefr1edrp7znq7byppzg673qbefr4u41ktrwg1kbjafr47muqoogr3jycrogs4mqchzywn1dkijieu4peijywi5exr9owukxkjkr1o4jef8yw1dfrbwgnh5qr74ny35xqoo8g4djqoogn5dcrbzzc3m1rbwg15jqbeffsa5cp7anya5cp7af4n1bkjkroik18efr65drrb5s65mbpaoown1rei8rh1ku8efr4amqrrfywok1ktrfkwt4bj8sa3byjioshmbyqpzzrhu3faofq4dbqoogs5ujc7w8eedcpf5gkedjpao8e4dbqooggamuqtsgkedxq31zredwpb1zr3j9befretkqj3rigqokjrus4edwpbwzr7d3rb3sk7ufpazywn1bkjkroik18effq4dbqo9own1rei8rh1ku8efr1j5prb4go4m1qth1yh5fq31shebpfwor1j5prbzg67byp7sgeeekbjyirinekijdwn1zcisgambyjroggamqr74ny4uiqp4nya5bptsny6mxqwogyumbpau1hnoketnwhu1jkc7ywi5fptsnaed3p741ya5xqisgeeducfh1yanrcizgh4murhzywok1ktrfkwt4bjmsk5dcfoor1edrpf1ghj5wrbish55zrbhs67jyq71zr3jycposa5dfcoogytdfp3zg1h3qrhfywtnfj38r1w34bjmsk5dcfoo8155irb1g13dqr74nyauxqtwgkhtyqtz1y3ujp31ny55iqosny3djcoo8155i8hfywok1ktrfkwt4bjr1y3djcoo8gam3rb3s6hu1xrognauxqi4ny7decwogy55ccoo8q55pcfznaj3ycj4zeedgqjzs4edwpb11yaufpbwsh3byxfzzkedcp7zss3mrfwsown1rei8rh1ku8effq4dbqoor1edxcjigka5wrb4g6edjqco8155irbozk7dxpioze4mdcfsga6jyqt3gkamwrbsskedcpfiskedbpaog15ugci3g1551rrfywok1ktrfkwt4bjmsk5dcfoor1enbjwogs4mqchznhmokbjnrku1qjfjuwn1xpyogs4mqchsny3mefoo8c3m1xrogh4mdcwznyomqrhogo55zr71ny6mxqwogq3mwrb4goamwfoogk4b9rbb81edfxbaga55jqtwshj3yqtwgkedzp73gs3m1qcon4mjycjh1yj5bp3us15t8rbzshedwphog67mwctoze3mrrbws4hdfqjwsn5djqp4ny3dxc7ssnedzpbwsg4byqb1zrhdfqt4sn7dfqco8e4dfrb1sg55qp7ss1a3ycfznqedup7ts1amcrb1g13ugci3gk5udci31y4mqrbzzkhtyqpzsg4mfqth1nenjcao8e4dfqj11qh3yci5gkhtyc7zs15u8rb4g6edncwogn5u3rba8r558qj1zgh3pfwfywi4xjiywhqoket1sh5ujqcsny7deci3gkj5urb3s65mfrbsg67ufpth1y3ujpt4goedrp75shedeci3gkmtyj7wnymjprbwg673ycouz155irb1g6xakbjyirinekijdwn1ep751y3dxrbhs67jyctz1aed8p7zseedccf181mtyjrogn5jyef38e4diqesny15jp3u1y55grb4go3jyej3g17dxp331hn1zpbzzg3jycpozg7dccwog1h3yqtwgn7b9beffqu4pef8dwn1mpfzgqedxcao8e4dfrb5so539bjyirinekijdwn1wpb11you1pf4g65uufafywi4xjiywhqokk7wg6edbqj11y7decworrhujqtzshh39befrnw1wjbkirqokk71sa5bcrb5skedbptsnyam1cwzny75fr73gkedbptsnyou1pf4g65uurbosh3byjrogn5jyxfzzkhtyppwsh33qbeffqu4pef8dwn1jrb1g13dqr74ny45qp751y75frbwgn3bycrogs4mqchzny1jyqtwg67m8pb4ny75frb5skhufrboshedbqi4g65uxpizzkh3ycpzsa5dfcp4g17uffafywtnfj38r1w34bjcs67j8qj11y3uxp7sg15u8rbhs67m1qp1sa3tqrbmskj51cwoga4mspfzgqedjpaognedrpftzeamwp738g4djqyznyojyqp1sa3tpqb1zrhdfqt4sn7djp3u1yamiqtzsghubcph1y4mqrb5so4mdpyo8e4dfrb5s6humpfzgqeddptozgh5fqcs14nokk78w4okq8efr64byqtwgkhufrbhs67jyc7z1aednqjwsh35jp3u1ya5ccf3zgedjp34g6edjqoogn35bpfznhnoketnwhu1jkc7ywidecf4nqh3yq7wgn7bypf4nqh3ycfsgaedbcjzzk7bypfuny55qpth1yhdfp7aga3jyq7zzk5drfwsown1bkjkroik18effy5dfcf3skmbyqbsgkamucwogq55xcoo8y3mxqbsgkmtyjrogn5jypfzny4dbqp4gkmtyk7wg6edcpf5gkh3ypfzny7decf4nya5bqp4ga3j9beffqu4pef8dwn1qphog65ufrbsg17ufrb4go3m1cwzywn1bkjkroik18effe4dfpao8q4dxrbwzged3p74zredcp73gexakbjmw6ukbja7ywi5frb1g65t8qoogoamscwognedcp73gemokbjyirinekijdwn1zpbozexakbjnrku1qjfjuwn1jrb4g65drrbhs67jqrbmskj51cwogn5tycfzgnhudpbz14h53p31g1a5bptwzg7bycpzs45mip311henzcwo8eammcwog17bypfzny7diqjz8gedwphogna5wrbozgedbrb3s6huwrbzscedfxb1sg7mwpf5gkedxc3ug1a5fqeogc551rb4go3jyq71sk43qbefrnw1wjbkirqokmf1zgmokbjnrku1qjfjuwn1nqi4nyamcpoo8e4dfrb1gka5jqpws65typ7uny7decf4ny55gc3wsg3m1rbwgn7ufrb4g6edncwo8ramwpfug13mrrbozeedbrb3zy3mdpfosaednpf5sk3mmpth1y5mfci4g15u8fafywok1ktrfkwt4bjcskh3crbr1yh5fcwzywn1rei8rh1ku8efrr6jycro8g4mpqbsgkedpcfig6hujqth1y4mqrb4go3jycpozg3jyp7unyhdiqj1sa6jypfz8e3m1p3osaedbc3ugn4m1qcsn4mekbjyirinekijdwn1ncwo8n7mjci4nnn1rei8rh1ku8efn4mmnqi4nyau3rbo1y7dzphsze4djqj18gedpcfig6hujqth1y4mqrb4go3jycpozg3jyp7uny5mxqj114mekbjyirinekijdwn1ncwo8n7mjci4nnenjrbzzr3dfqeo8155irb4g6edncwo8n7mjci4nnnokk78w4okq8efr6hurci3naedfpyon4mjyq7wg6edrp71zgedecwo8e4djp3i1y4dfrbwzgxakbjyirinekijyw1jycfs1y6mxqi3ny45jp3u1nnokk78w4okqbjmsk5dcfoor1edrpf1ghj5wrb5g67dfrbug6htyxfzzkmokbjyirinekijywsmxqwoge55qr74ny7uxqt11y3uxqeogs4mqc731hnokk78w4okqbjmsk5dcfoonq55zrb1g13byxfzzkedncits65mfrbis15u8rb4go3mq8hfywn1bkjkroik18effe4dfrbggn3d3rbzscedwpb11yudbpp11an15cfzgq3mcqco8g4mqc7qow4dfqeognhuprbtsaamrrbwshedwpb11yhdiqj1zg7byqpwg15mpci3g15u8rb3sn5mjqt11aedecisgeedbptzsc7byeihggamcpft8khtyc33g65jyqtwgkednp73s65jyp7uny7decwo8qamwci3nyh5jc7zg13u3pfzgqednxrore4mspfzgkenoqjzzc4mrcizgg3jyqtwgn7byjrsnyom1qtw8khtcrb5snh3yqtz1ya5bqj381enfxbtsn5djcj4zrmokmp3s15u8pfzgqeduqtzzyh47bjkgoamwrbwzgedzpbh1y1jycfs1y6mxqi3ny45jp3u1nnoketnwhu1jkcfra4muqt1shebpfwo8g7d1cfzgq3jyq7zs43mqrbs814mqchog15tyqbzsh3durb1g1h5wqjwsr7mwpfzgqeduq7zzr3durbwzgedqphogramupf31y3uxqeogneduxf3ze3mprbzsced8p75gkhuqpi1sh7bqrbjzkhd1cisskedfxb1sg7mwpf5gkedop75skhtyct1zr4msci31y3u1p7s1yajypiosh3dbqt11y3u1p7s1y7decwog4amuqp1zgmbyp3zzeedgqjzs4edup7sskedgcf3gg4mdcfsnyamtqioze4mdrbtskhufpizsh6jqbefrnw1wjbkirn1ncwo8n7mjci4nnnoketnwhu1jkcffq3mcpoo8155irbtsn5t8qoogk6docitzeedwpho8q4mfpt1nyh5iqb3gk5mfrb1zo3mdqi4g17ufrbag675fqeogw7muqoonqa5bqi3skedup7sskedzcf4gkhu3rb4gnhuwrb4gohufqhogneduq7zzr3bycf4ny6mxqwoowok1ktrfkwt4rbjso7mwrb4zyeekbjnrku1qjfjuwenjrbsskamqfoog13tyjro8q3mqqoognhuxqizgeeducfhs15t8rbr1y75bqcogn5tyciszy3m1p73ny4uiqp4nyaufcpozkh5frb3s65mfrbss64muqt1sh3mrrbtg15uwrbwgn3byptzsraufcoogneducpws44mwcf3nyamwrbsskedwpb1z1j5rrba8k7bypi11yamzcfh1nnokefjfe1nikeffg4diqoo8khbbrbms15dcrbhs67jyqpw8k7byqiannnoketnwhu1jkcfrn4bcrbzg673yq711yh5fcwo8e4dfrb5g155ccizgg3jypfzgo3m1ciz8eedjpao8e4dfrb3z1h5wcis1hnokefjfe1nikeffg4diqoo8khbbbefywtnfj38r1wakj7wnnendp7sskedbp31nyh5fcwo8e4dfrb5g155ccizgg3jypfzgo3m1ciz8eedjpao8e4dfrb3z1h5wcis1neneeigfyejyjbnwawbbrbr1q5jycj1s15u8rb3gkhd1ci3zg3mrrrfywok1ktrfkwokejsg655rxro8y3mbqposh7bbbefywtnfj38r1wakj7wnaedzpbozeedbrbus17ufrbozqam3faore4mrrbhs67jypb1zr3jyqtwgn7bcrb1g13byxfzzkedeci3gkedwpbozembyciwd6enwpbozej5urb5soamwrbr1q5jyp7znyamnp74zeebpfwoge4mrrbhs67jyqp1skedepfs1yhufqb3gkh5upfzgqedpcwsny6mxqwo8gamzrbwzeedrpf1ghj5wrbhs67j9"
+)
+
+test(
+  "should encode",
+  "encode(Base32Hex, \"I may not have gone where I intended to go, but I think I have ended up where I needed to be.\")",
+  () =>
+    encode(
+      Base32Hex,
+      "I may not have gone where I intended to go, but I think I have ended up where I needed to be."
+    ),
+  equals,
+  "94G6QOBP41N6UT10D1GNCP90CTNMSP90ETK6ASJ5414I0QBEEHIMSP35CGG78RP0CTNIO832ELQ20I90EHK6IRJB414I0Q31EPII0PBECHIM883LE0G7EQ35E9II0I90DPIMAP35CGG78RP0C9IIS==="
+)
+
+test(
+  "should encode",
+  "encode(Crockford, \"I may not have gone where I intended to go, but I think I have ended up where I needed to be.\")",
+  () =>
+    encode(
+      Crockford,
+      "I may not have gone where I intended to go, but I think I have ended up where I needed to be."
+    ),
+  equals,
+  "94G6TRBS41Q6YX10D1GQCS90CXQPWS90EXM6AWK5414J0TBEEHJPWS35CGG78VS0CXQJR832ENT20J90EHM6JVKB414J0T31ESJJ0SBECHJP883NE0G7ET35E9JJ0J90DSJPAS35CGG78VS0C9JJW"
+)
+
+test(
+  "should encode",
+  "encode(Base32, \"I may not have gone where I intended to go, but I think I have ended up where I needed to be.\")",
+  () =>
+    encode(
+      Base32,
+      "I may not have gone where I intended to go, but I think I have ended up where I needed to be."
+    ),
+  equals,
+  "JEQG2YLZEBXG65BANBQXMZJAM5XW4ZJAO5UGK4TFEBESA2LOORSW4ZDFMQQHI3ZAM5XSYIDCOV2CASJAORUGS3TLEBESA2DBOZSSAZLOMRSWIIDVOAQHO2DFOJSSASJANZSWKZDFMQQHI3ZAMJSS4==="
+)
+
+print("\n✅ " ++ toString(results.succeses) ++ " tests passed.")
+print("❌ " ++ toString(results.fails) ++ " tests failed.")
