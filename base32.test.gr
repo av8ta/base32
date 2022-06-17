@@ -1,4 +1,4 @@
-import { encode, ZBase32, Base32Hex, Crockford, Base32 } from "./base32"
+import { encode, decode, ZBase32, Base32Hex, Crockford, Base32 } from "./base32"
 import String, { concat } from "string"
 import Result from "result"
 
@@ -17,7 +17,7 @@ let (++) = (a, b) => concat(a, b)
 
 let equals = (expected, value) =>
   match (expected == value) {
-    false => Err({ should: " to equal ", did: " did not equal " }),
+    false => Err({ should: " to equal: ", did: " did not equal " }),
     true => Ok({ should: "equal", did: "equals" }),
   }
 
@@ -33,7 +33,7 @@ let test = (desc, action, fn, comparator, expected) => {
         action ++
         e.should ++
         toString(expected) ++
-        " but got " ++
+        "  but got: " ++
         toString(value)
       )
     },
@@ -45,6 +45,7 @@ let test = (desc, action, fn, comparator, expected) => {
   }
 }
 
+// ==================== encoding ==================== //
 test(
   "should encode",
   "encode(ZBase32, \"The quick brown fox jumps over the lazy dog.\")",
@@ -284,6 +285,67 @@ test(
     ),
   equals,
   "JEQG2YLZEBXG65BANBQXMZJAM5XW4ZJAO5UGK4TFEBESA2LOORSW4ZDFMQQHI3ZAM5XSYIDCOV2CASJAORUGS3TLEBESA2DBOZSSAZLOMRSWIIDVOAQHO2DFOJSSASJANZSWKZDFMQQHI3ZAMJSS4==="
+)
+
+let emojis = "we found a path🚀 to greatness🏅but the grind never quits😤💪🏼 keep milling💯🔥😈"
+
+test(
+  "should encode",
+  "encode(ZBase32, " ++ toString(emojis) ++ ")",
+  () => encode(ZBase32, emojis),
+  equals,
+  "q711y3uxqizgeedbrbagn7de6nx3iybyqtz1y351cioze5ufqp39b8hxoit8k7byqtwgked8qjwsh3byp31zc3m1rbazk4mwqxaj9gfr6nx3fkzou685aedmci1zyedppfsga4mqc9aj9rix6nx3jjxou6ceo"
+)
+
+test(
+  "should encode",
+  "encode(ZBase32, 💯🔥",
+  () => encode(ZBase32, "💯🔥"),
+  equals,
+  "6nx3fm9ou6kkk"
+)
+
+// ==================== decoding ==================== //
+
+
+// test(
+//   "should decode",
+//   "decode(ZBase32, 6nx3fm9ou6kkk",
+//   () => decode(ZBase32, "6nx3fm9ou6kkk"),
+//   equals,
+//   "💯🔥"
+// )
+
+// test(
+//   "should decode",
+//   "decode(ZBase32, \"q711y3uxqizgeedbrbagn7de6nx3iybyqtz1y351cioze5ufqp39b8hxoit8k7byqtwgked8qjwsh3byp31zc3m1rbazk4mwqxaj9gfr6nx3fkzou685aedmci1zyedppfsga4mqc9aj9rix6nx3jjxou6ceo\"",
+//   () => decode(ZBase32, emojis),
+//   equals,
+//   toString(emojis)
+// )
+
+test(
+  "should decode",
+  "decode(ZBase32, \"ktwgkedtqiwsg43ycj3g675qrbug66bypj4s4hdurbzzc3m1rb4go3jyptozw6jyctzsqmo\")",
+  () =>
+    decode(
+      ZBase32,
+      "ktwgkedtqiwsg43ycj3g675qrbug66bypj4s4hdurbzzc3m1rb4go3jyptozw6jyctzsqmo"
+    ),
+  equals,
+  "The quick brown fox jumps over the lazy dog."
+)
+
+test(
+  "should decode",
+  "decode(Base32Hex, \"AHK6A83HELKM6QP0C9P6UTRE41J6UU10D9QMQS3J41NNCPBI41Q6GP90DHGNKU90CHNMEBG\")",
+  () =>
+    decode(
+      Base32Hex,
+      "AHK6A83HELKM6QP0C9P6UTRE41J6UU10D9QMQS3J41NNCPBI41Q6GP90DHGNKU90CHNMEBG="
+    ),
+  equals,
+  "The quick brown fox jumps over the lazy dog."
 )
 
 print("\n✅ " ++ toString(results.succeses) ++ " tests passed.")

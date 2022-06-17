@@ -1,8 +1,26 @@
-import String, { explode, implode, UTF8 } from "string"
-import { length, slice, getInt8U } from "bytes"
-import { shrU, shl, lor, gtU, sub, toNumber } from "int32"
-import { ceil } from "number"
+import String, { explode, implode, UTF8, forEachCodePointi } from "string"
+import Bytes, { length, slice, getInt8U, setInt8, setInt32 } from "bytes"
+import {
+  shrU,
+  shl,
+  lor,
+  gtU,
+  ltU,
+  lt,
+  gt,
+  shr,
+  land,
+  sub,
+  add,
+  mul,
+  toNumber,
+  fromNumber,
+} from "int32"
+import Number, { ceil } from "number"
 import Array from "array"
+import Map from "map"
+import Char, { fromCode } from "char"
+import Buffer from "buffer"
 
 export enum Encoding {
   ZBase32,
@@ -15,13 +33,6 @@ let zBase32 = explode("ybndrfg8ejkmcpqxot1uwisza345h769")
 let base32Hex = explode("0123456789ABCDEFGHIJKLMNOPQRSTUV")
 let crockford = explode("0123456789ABCDEFGHJKMNPQRSTVWXYZ")
 let base32 = explode("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
-
-let (++) = (a, b) => String.concat(a, b)
-let (>>) = (intA, intB) => shrU(intA, intB)
-let (<<) = (intA, intB) => shl(intA, intB)
-let (|) = (intA, intB) => lor(intA, intB)
-let (>) = (intA, intB) => gtU(intA, intB)
-let (-) = (intA, intB) => sub(intA, intB)
 
 export let forEachByte = (fn, bytes) => {
   for (let mut i = 0; i < length(bytes); i += 1) {
@@ -38,6 +49,12 @@ export let forEachInt8U = (fn, bytes) => {
 }
 
 export let encodeBytes = (alphabet, padding, bytes) => {
+  let (>>) = (intA, intB) => shrU(intA, intB)
+  let (<<) = (intA, intB) => shl(intA, intB)
+  let (|) = (intA, intB) => lor(intA, intB)
+  let (>) = (intA, intB) => gtU(intA, intB)
+  let (-) = (intA, intB) => sub(intA, intB)
+
   let mut shift = 3l
   let mut carry = 0l
   let mut index = 0l
@@ -74,6 +91,90 @@ export let encodeBytes = (alphabet, padding, bytes) => {
   }
 }
 
+let unexpectedCodepointError = codepoint =>
+  print(
+    "Error, unexpected codepoint: " ++
+    toString(codepoint) ++
+    " did you pass an encoded string to decode?"
+  )
+
+export let decodeBytes = (alphabet, padding, input) => {
+  let (<) = (intA, intB) => lt(intA, intB)
+  let (>) = (intA, intB) => gt(intA, intB)
+  let (<<) = (intA, intB) => shl(intA, intB)
+  let (>>) = (intA, intB) => shr(intA, intB)
+  let (-) = (intA, intB) => sub(intA, intB)
+  let (|) = (intA, intB) => lor(intA, intB)
+
+  let mut shift = 8l
+  let mut carry = 0l
+  let mut index = 0l
+  let mut j = 0
+
+  let resLength = ceil(8 * ceil(String.length(input) / 5))
+  let mut result = Bytes.make(resLength)
+  // let mut result = Array.make(resLength, 0l)
+  // let mut result = Buffer.make(resLength * 99999999)
+
+  let decodeMap = Map.makeSized(32)
+  forEachCodePointi((code, i) => Map.set(code, i, decodeMap), implode(alphabet))
+
+  let process = (codepoint, i) => {
+    if (fromCode(codepoint) != padding) {
+      let charInt = match (Map.get(codepoint, decodeMap)) {
+        Some(v) => {
+          index = fromNumber(v & 0xff)
+          shift -= 5l
+          match (shift) {
+            s when shift > 0l => {
+              carry = carry | index << shift
+            },
+            s when shift < 0l => {
+              let b = carry | index >> fromNumber(ceil(toNumber(shift) * -1))
+              Bytes.setInt8(j, b, result)
+              // Bytes.setInt32(j, b, result)
+              // result[j] = b
+              // Buffer.setInt8(j, b, result)
+              j += 1
+              shift = add(s, 8l)
+              carry = land(index << shift, fromNumber(0xff))
+            },
+            _ => {
+              Bytes.setInt8(j, carry | shift, result)
+              Bytes.setInt32(j, carry | shift, result)
+              // result[j] = carry | shift
+              // Buffer.setInt8(j, carry | shift, result)
+              j += 1
+              shift = 8l
+              carry = 0l
+            },
+          }
+        },
+        None => unexpectedCodepointError(codepoint),
+      }
+    }
+  }
+
+  forEachCodePointi(process, input)
+  // print(fromCode(toNumber(Bytes.getInt8U(117,result))))
+  // print(result)
+  // print(fromCode(0x60))
+
+  Bytes.toString(result)
+  // String.decode(result, UTF8)
+  // String.decodeKeepBom(result, UTF8)
+  // String.decodeRange(result, UTF8, 0, 44)
+  // String.decodeRangeKeepBom(result, UTF8, 0, 44)
+
+  // ^^^^ all of these produce: The `uick brow` fox jump` ove` the lazy dog.
+  // what is going on here!!!
+
+  // these fail - array is gibberish. buffer has out of range error. which makes no sense because lowest
+  // index used for insert is 0
+  // implode(Array.map(int => fromCode(toNumber(int)), result))
+  // Buffer.toString(result)
+}
+
 export let encode = (encoding: Encoding, string) =>
   match (encoding) {
     ZBase32 => encodeBytes(zBase32, '🌾', String.encode(string, UTF8)),
@@ -81,3 +182,47 @@ export let encode = (encoding: Encoding, string) =>
     Crockford => encodeBytes(crockford, '🌾', String.encode(string, UTF8)),
     Base32 => encodeBytes(base32, '=', String.encode(string, UTF8)),
   }
+
+export let decode = (encoding: Encoding, string) =>
+  match (encoding) {
+    ZBase32 => decodeBytes(zBase32, '🌾', string),
+    Base32Hex => decodeBytes(base32Hex, '=', string),
+    Crockford => decodeBytes(crockford, '🌾', string),
+    Base32 => decodeBytes(base32, '=', string),
+  }
+
+let processBytes = b => {
+  let ret = Array.make(Bytes.length(b), 0l)
+  for (let mut i = 0; i < Bytes.length(b); i += 1) {
+    ret[i] = Bytes.getInt8U(i, b)
+  }
+  ret
+}
+
+let decodedBytes = decode(
+  Base32Hex,
+  "AHK6A83HELKM6QP0C9P6UTRE41J6UU10D9QMQS3J41NNCPBI41Q6GP90DHGNKU90CHNMEBG="
+)
+
+let z = decode(
+  ZBase32,
+  "ktwgkedtqiwsg43ycj3g675qrbug66bypj4s4hdurbzzc3m1rb4go3jyptozw6jyctzsqmo"
+)
+print(z)
+
+// let arrayInt32 = processBytes(decodedBytes)
+// print(arrayInt32)
+// print(Array.map(int => fromCode(toNumber(int)), arrayInt32))
+// print(implode(Array.map(int => fromCode(toNumber(int)), arrayInt32)))
+
+// print(arrayInt32[0])
+// print(fromCode(toNumber(arrayInt32[0])))
+// print(fromCode(84))
+
+// print(arrayInt32[4])
+// print(fromCode(toNumber(arrayInt32[4])))
+// print(fromCode(117))
+
+// print(arrayInt32[5])
+// print(fromCode(toNumber(arrayInt32[5])))
+// print(fromCode(96))
